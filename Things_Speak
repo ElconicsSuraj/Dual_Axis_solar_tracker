@@ -1,0 +1,77 @@
+#ifdef ESP32
+  #include <WiFi.h>
+#else
+  #include <ESP8266WiFi.h>
+#endif
+#include <WiFi.h>
+#include "ThingSpeak.h"
+
+
+const char* ssid = "Wifi";   // your network SSID (name) 
+const char* password = "1234567890";   // your network password
+
+WiFiClient  client;
+
+unsigned long myChannelNumber = 2587980;
+const char * myWriteAPIKey = "6I1GICEGBQ605DKT";
+
+// Timer variables
+unsigned long lastTime = 0;
+unsigned long timerDelay = 3000;
+
+
+
+
+
+
+void setup() {
+  pinMode(15,OUTPUT);
+  Serial.begin(115200);  //Initialize serial
+  
+  
+  WiFi.mode(WIFI_STA);   
+  
+  ThingSpeak.begin(client);  // Initialize ThingSpeak
+}
+
+void loop() {
+
+  digitalWrite(15,HIGH);
+  if ((millis() - lastTime) > timerDelay) {
+    
+    // Connect or reconnect to WiFi
+    if(WiFi.status() != WL_CONNECTED){
+      Serial.print("Attempting to connect");
+      while(WiFi.status() != WL_CONNECTED){
+        WiFi.begin(ssid, password); 
+        delay(5000);     
+      } 
+      Serial.println("\nConnected.");
+    }
+
+
+
+
+    // set the fields with the values
+    float voltage = random(400,500);
+    float Current = random(0,1000);
+    int power = voltage*power/1000;
+    ThingSpeak.setField(1, voltage);
+    ThingSpeak.setField(2, Current);
+    ThingSpeak.setField(3, random(500,1000));
+//    ThingSpeak.setField(2, random(100,200));
+   
+    
+    // Write to ThingSpeak. There are up to 8 fields in a channel, allowing you to store up to 8 different
+    // pieces of information in a channel.  Here, we write to field 1.
+    int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+
+    if(x == 200){
+      Serial.println("Channel update successful.");
+    }
+    else{
+      Serial.println("Problem updating channel. HTTP error code " + String(x));
+    }
+    lastTime = millis();
+  }
+}
